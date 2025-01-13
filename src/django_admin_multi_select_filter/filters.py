@@ -1,9 +1,13 @@
+import django
 from django.contrib import admin
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.admin.utils import reverse_field_path
 from django.core.exceptions import ValidationError
 from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
+
+
+DJANGO_5x = django.VERSION[:2] >= (5, 0)
 
 
 class MultiSelectFieldListFilter(admin.FieldListFilter):
@@ -16,7 +20,7 @@ class MultiSelectFieldListFilter(admin.FieldListFilter):
         self.lookup_val = self.used_parameters.get(self.lookup_kwarg, [])
         if len(self.lookup_val) == 1 and self.lookup_val[0] == "":
             self.lookup_val = []
-        elif len(self.lookup_val) == 1 and type(self.lookup_val[0]) != str:
+        elif DJANGO_5x and self.lookup_val:
             # In Django 5.0, we get an extra list
             self.lookup_val = self.lookup_val[0]
         self.lookup_val_isnull = self.used_parameters.get(self.lookup_kwarg_isnull)
@@ -95,9 +99,11 @@ class MultiSelectRelatedFieldListFilter(admin.RelatedFieldListFilter):
         self.lookup_kwarg = "%s__%s__in" % (field_path, field.target_field.name)
         self.lookup_kwarg_isnull = "%s__isnull" % field_path
         values = params.get(self.lookup_kwarg, [])
-        if len(values) == 1 and type(values[0]) != str:
+
+        if DJANGO_5x and values:
             # In Django 5.0, we get an extra list
             values = values[0]
+
         self.lookup_val = values.split(",") if values else []
         self.lookup_choices = self.field_choices(field, request, model_admin)
 
